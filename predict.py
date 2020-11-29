@@ -3,7 +3,8 @@
 import argparse
 import os
 
-from covid_xprize.examples.predictors.kassandra_predictor import KassandraPredictor
+#from covid_xprize.examples.predictors.kassandra_predictor import KassandraPredictor
+from kassandra_predictor import KassandraPredictor
 
 
 def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path) -> None:
@@ -27,7 +28,7 @@ def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path
     print("  >>> Reading trained models . . . ",end="") 
     predictor = KassandraPredictor()
     print("done")
-    print("  >>> Reading trained models . . . ",end="")
+    print("  >>> Manipulating the input . . . ",end="")
     input_df = predictor.manipulate(start_date,end_date,path_to_ips_file)
     print("done")
     print()
@@ -38,7 +39,7 @@ def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path
     preds_df = predictor.predict(start_date,end_date,input_df)
     print("done")
     print()
-    
+
     # Write the output to the given file
     print("Writing output:")    
     os.makedirs(os.path.dirname(output_file_path),exist_ok=True)
