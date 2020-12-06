@@ -1,6 +1,7 @@
 # Copyright 2020 (c) Cognizant Digital Business, Evolutionary AI. All rights reserved. Issued under the Apache 2.0 License.
 
 import argparse
+import sys
 import os
 
 #from covid_xprize.examples.predictors.kassandra_predictor import KassandraPredictor
@@ -22,32 +23,36 @@ def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path
     # !!! YOUR CODE HERE !!!
 
     # Check if re-training is needed
-        
+    project_root   ='covid_xprize/examples/predictors/kassandra_predictor/'
+    my_first_model = 'model_1_06_12_2020.csv'
+
+
+    
     # Initialize a predictor object by reading the trained models and manipulating the input file
-    print("Initializing:")
-    print("  >>> Reading trained models . . . ",end="") 
-    predictor = KassandraPredictor()
-    print("done")
-    print("  >>> Manipulating the input . . . ",end="")
+    print("Initializing:",flush=True)
+    print("  >>> Reading trained models . . . ",end="",flush=True)
+    predictor = KassandraPredictor(project_root + 'models/' + my_first_model)
+    print("done",flush=True)
+    print("  >>> Manipulating the input . . . ",end="",flush=True)
     input_df = predictor.manipulate(start_date,end_date,path_to_ips_file)
-    print("done")
+    print("done",flush=True)
     print()
     
     # Generate the predictions given: start, end date, and Intervention Plans
-    print("Predicting:")
-    print("  >>> Making predictions . . . ",end="")
+    print("Predicting:",flush=True)
+    print("  >>> Making predictions . . . ",end="",flush=True)
     preds_df = predictor.predict(start_date,end_date,input_df)
-    print("done")
+    print("done",flush=True)
     print()
 
     # Write the output to the given file
-    print("Writing output:")    
+    print("Writing output:",flush=True)
     os.makedirs(os.path.dirname(output_file_path),exist_ok=True)
     preds_df.to_csv(output_file_path,index=False)
-    print("done")
+    print("done",flush=True)
     print()
     
-    print(f"SUCCESS! Saved predictions to {output_file_path}")
+    print(f"SUCCESS! Saved predictions to {output_file_path}",flush=True)
     print()
     
 
