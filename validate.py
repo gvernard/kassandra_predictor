@@ -21,8 +21,8 @@ def validate(start_date,end_date,ip_file,output_file):
 
 
 
-validate(start_date="2020-08-01",
-         end_date="2020-08-04",
+validate(start_date="2020-12-12",
+         end_date="2020-12-30",
          #ip_file="../../../validation/data/2020-09-30_historical_ip.csv",
          ip_file="data/OxCGRT_latest.csv",
          output_file="predictions/val_4_days.csv")

@@ -23,7 +23,7 @@ def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path
     # !!! YOUR CODE HERE !!!
 
     # Check if re-training is needed
-    project_root   ='covid_xprize/examples/predictors/kassandra_predictor/'
+    project_root   =''
     my_first_model = 'model_1_06_12_2020.csv'
 
 
@@ -47,7 +47,7 @@ def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path
 
     # Write the output to the given file
     print("Writing output:",flush=True)
-    os.makedirs(os.path.dirname(output_file_path),exist_ok=True)
+    #os.makedirs(os.path.dirname(output_file_path),exist_ok=True)
     preds_df.to_csv(output_file_path,index=False)
     print("done",flush=True)
     print()
