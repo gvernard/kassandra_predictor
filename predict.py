@@ -23,15 +23,17 @@ def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path
     # !!! YOUR CODE HERE !!!
 
     # Check if re-training is needed
-    project_root   =''
-    my_first_model = 'model_1_06_12_2020.csv'
+    #project_root   ='work/'
+    project_root   ='/home/george/myCodes/PandemicResponse/covid-xprize/kassandra_predictor/'
+    #my_first_model = 'single_model_06_12_2020.csv'
+    my_first_model = 'multi_model_19_12_2020.csv'
 
 
     
     # Initialize a predictor object by reading the trained models and manipulating the input file
     print("Initializing:",flush=True)
     print("  >>> Reading trained models . . . ",end="",flush=True)
-    predictor = KassandraPredictor(project_root + 'models/' + my_first_model)
+    predictor = KassandraPredictor(project_root,my_first_model)
     print("done",flush=True)
     print("  >>> Manipulating the input . . . ",end="",flush=True)
     input_df = predictor.manipulate(start_date,end_date,path_to_ips_file)
