@@ -109,13 +109,9 @@ class KassandraPredictor:
         forecast = {"CountryName": [],
                     "RegionName": [],
                     "Date": [],
-                    "PredictedDailyNewCases": []}
+                    "PredictedDailyNewCases": [],
+                    "PredictedDailySdev": []}
 
-        forecast_sdev = {"CountryName": [],
-                         "RegionName": [],
-                         "Date": [],
-                         "PredictedDailySdev": []}
-        
         
         # For each requested geo
         geos = input_df.GeoID.unique()
@@ -130,38 +126,31 @@ class KassandraPredictor:
             
             # Here call the model for each GeoID
             if self.model_type == 'single':
-                pred_new_cases = self.predict_per_country(g,n_days,latest_data)
+                pred_new_cases,pred_sdev = self.predict_per_country(g,n_days,latest_data)
             elif self.model_type == 'multi':
                 pred_new_cases,pred_sdev = self.predict_per_country_multi(g,n_days,latest_data)                
             else:
                 pred_new_cases = [0] * n_days
+                pred_sdev = [0] * n_days
         
-            geo_start_date = start_date            
-            for i,pred in enumerate(pred_new_cases):
+            geo_start_date = start_date
+            #for i,pred in enumerate(pred_new_cases):
+            for i in range(0,len(pred_new_cases)):
                 forecast["CountryName"].append(country)
                 forecast["RegionName"].append(region)
                 current_date = geo_start_date + pd.offsets.Day(i)
                 forecast["Date"].append(current_date)
-                forecast["PredictedDailyNewCases"].append(pred)
+                forecast["PredictedDailyNewCases"].append(pred_new_cases[i])
+                forecast["PredictedDailySdev"].append(pred_sdev[i])
 
-            if self.model_type == 'multi':
-                geo_start_date = start_date            
-                for i,pred in enumerate(pred_sdev):
-                    forecast_sdev["CountryName"].append(country)
-                    forecast_sdev["RegionName"].append(region)
-                    current_date = geo_start_date + pd.offsets.Day(i)
-                    forecast_sdev["Date"].append(current_date)
-                    forecast_sdev["PredictedDailySdev"].append(pred)
-
-                    
-        if self.model_type == 'multi':
-            forecast_sdev_df = pd.DataFrame.from_dict(forecast_sdev)
-            forecast_sdev_df = forecast_sdev_df[(forecast_sdev_df.Date >= start_date) & (forecast_sdev_df.Date <= end_date)]
-            forecast_sdev_df.to_csv(self.project_root+"predictions/sdev_"+start_date_str+"_"+end_date_str+".csv",index=False)
-
-                    
-        # Convert dictionary to DataFrame and return only the requested predictions
+        # Convert dictionary to DataFrame
         forecast_df = pd.DataFrame.from_dict(forecast)
+
+        # Impose positivity
+        forecast_df['PredictedDailyNewCases'] = forecast_df['PredictedDailyNewCases'].clip(lower=0)
+        forecast_df['PredictedDailySdev'] = forecast_df['PredictedDailySdev'].clip(lower=0)
+        
+        # Return only the requested predictions
         return forecast_df[(forecast_df.Date >= start_date) & (forecast_df.Date <= end_date)]
 
 
@@ -194,8 +183,10 @@ class KassandraPredictor:
             
             pred_new_cases = y_hat
         else :
-            pred_new_cases = [0] * n_days        
-        return pred_new_cases
+            pred_new_cases = [0] * n_days
+        pred_sdev = [0] * n_days        
+
+        return pred_new_cases,pred_sdev
 
     
 
@@ -207,12 +198,9 @@ class KassandraPredictor:
         mat = np.zeros((n_days,N_IPS+1))
         mat[:,0] = 1
         latest_ips = latest_ips/4.0
-        #print(latest_ips)
         for k in range(0,N_IPS):
-            #mat[:,k+1] = np.convolve(self.h,latest_ips[:,k])
             dum = np.convolve(self.h,latest_ips[:,k])
             mat[:,k+1] = dum[-n_days:]
-        #print(mat)
         return mat
 
     def predict_per_country_multi(self,GeoID,n_days,latest_ips):
