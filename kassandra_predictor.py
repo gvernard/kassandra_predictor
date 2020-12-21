@@ -11,7 +11,7 @@ class KassandraPredictor:
     Llog = 4
     K = 30
     M = 300
-    rate = 1.5
+    rate = 0.04
 
     model_type = 'single'
     
@@ -34,7 +34,6 @@ class KassandraPredictor:
          0.012346
     ]
 
-    
     
     def __init__(self,project_root,model_file):
         self.project_root = project_root
@@ -125,8 +124,9 @@ class KassandraPredictor:
             region  = input_df[input_df.GeoID == g].iloc[0].RegionName
 
             # slice the input required to make a prediction
-            latest_data = input_df[input_df.GeoID == g].iloc[-1]  # Select latest entry
-            latest_data = latest_data[settings.MY_IPS].values     # Filter and get only the selected MY_IPS and the new cases
+            #latest_data = input_df[input_df.GeoID == g].iloc[-1]      # Select latest entry
+            latest_data = input_df[input_df.GeoID == g].tail(n_days)   # Select last N entries
+            latest_data = latest_data[settings.MY_IPS].values          # Filter and get only the selected MY_IPS
             
             # Here call the model for each GeoID
             if self.model_type == 'single':
@@ -135,7 +135,7 @@ class KassandraPredictor:
                 pred_new_cases,pred_sdev = self.predict_per_country_multi(g,n_days,latest_data)                
             else:
                 pred_new_cases = [0] * n_days
-
+        
             geo_start_date = start_date            
             for i,pred in enumerate(pred_new_cases):
                 forecast["CountryName"].append(country)
@@ -203,13 +203,16 @@ class KassandraPredictor:
 
 
     def Psi_multi(self,n_days,latest_ips):
-        mat = np.zeros((n_days,len(latest_ips)+1))
+        N_IPS = len(settings.MY_IPS)
+        mat = np.zeros((n_days,N_IPS+1))
         mat[:,0] = 1
-        col = latest_ips/4.0
-        col = np.convolve(self.h,col)
-        for j in range(0,len(latest_ips)):
-            for i in range(0,n_days):
-                mat[i,j+1] = col[j]                
+        latest_ips = latest_ips/4.0
+        #print(latest_ips)
+        for k in range(0,N_IPS):
+            #mat[:,k+1] = np.convolve(self.h,latest_ips[:,k])
+            dum = np.convolve(self.h,latest_ips[:,k])
+            mat[:,k+1] = dum[-n_days:]
+        #print(mat)
         return mat
 
     def predict_per_country_multi(self,GeoID,n_days,latest_ips):
@@ -220,9 +223,11 @@ class KassandraPredictor:
         if n_models > 0:
             model_predictions = np.zeros((n_models,n_days))
             for k in range(0,n_models):
+            #for k in range(0,1):
                 a_hat = coeffs[k]
                 
                 psi = self.Psi_multi(n_days,latest_ips)
+                
                 z_hat = psi.dot(a_hat)
 
                 y_hat = np.zeros(n_days)
