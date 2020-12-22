@@ -13,7 +13,7 @@ latest_df = pd.read_csv(path_to_latest,
                         error_bad_lines=False)
 
 # Get everything that is before a LAST_DATE
-LAST_DATE = np.datetime64("2020-09-30")
+LAST_DATE = np.datetime64("2020-12-20")
 latest_df = latest_df[latest_df.Date <= LAST_DATE]
 
 # Restrict data to the Geo columns and the new cases

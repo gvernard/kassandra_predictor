@@ -1,3 +1,3 @@
 __pycache__
 predictions/
-models/latest_new_cases.csv
+data/OxCGRT_latest.csv
