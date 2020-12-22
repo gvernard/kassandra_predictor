@@ -27,6 +27,7 @@ validate(start_date="2020-12-12",
          ip_file="data/OxCGRT_latest.csv",
          output_file="predictions/val_4_days.csv")
 
+
 # Validation 180 into the future
 validate(start_date="2020-10-01",
          end_date="2021-03-30",

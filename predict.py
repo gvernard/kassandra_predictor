@@ -26,7 +26,7 @@ def predict(start_date: str,end_date: str,path_to_ips_file: str,output_file_path
     #project_root   ='work/'
     project_root   ='/home/george/myCodes/PandemicResponse/covid-xprize/kassandra_predictor/'
     #my_first_model = 'single_model_06_12_2020.csv'
-    my_first_model = 'multi_model_19_12_2020.csv'
+    my_first_model = 'multi_model_22_12_2020.csv'
 
 
     

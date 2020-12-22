@@ -9,8 +9,8 @@ class KassandraPredictor:
     model_df = pd.DataFrame(index=[0],columns=[0])
     latest_new_cases_df = pd.DataFrame(index=[0],columns=[0])
     Llog = 4
-    K = 30
-    M = 300
+    K = 20
+    M = 200
     rate = 0.04
 
     model_type = 'single'
@@ -33,7 +33,6 @@ class KassandraPredictor:
          0.024691,
          0.012346
     ]
-
     
     def __init__(self,project_root,model_file):
         self.project_root = project_root
@@ -110,7 +109,8 @@ class KassandraPredictor:
                     "RegionName": [],
                     "Date": [],
                     "PredictedDailyNewCases": [],
-                    "PredictedDailySdev": []}
+                    "PredictedDailyQuantile_25": [],
+                    "PredictedDailyQuantile_75": []}
 
         
         # For each requested geo
@@ -126,12 +126,13 @@ class KassandraPredictor:
             
             # Here call the model for each GeoID
             if self.model_type == 'single':
-                pred_new_cases,pred_sdev = self.predict_per_country(g,n_days,latest_data)
+                pred_new_cases,pred_25,pred_75 = self.predict_per_country(g,n_days,latest_data)
             elif self.model_type == 'multi':
-                pred_new_cases,pred_sdev = self.predict_per_country_multi(g,n_days,latest_data)                
+                pred_new_cases,pred_25,pred_75 = self.predict_per_country_multi(g,n_days,latest_data)                
             else:
                 pred_new_cases = [0] * n_days
-                pred_sdev = [0] * n_days
+                pred_25 = [0] * n_days
+                pred_75 = [0] * n_days
         
             geo_start_date = start_date
             #for i,pred in enumerate(pred_new_cases):
@@ -141,14 +142,17 @@ class KassandraPredictor:
                 current_date = geo_start_date + pd.offsets.Day(i)
                 forecast["Date"].append(current_date)
                 forecast["PredictedDailyNewCases"].append(pred_new_cases[i])
-                forecast["PredictedDailySdev"].append(pred_sdev[i])
+                forecast["PredictedDailyQuantile_25"].append(pred_25[i])
+                forecast["PredictedDailyQuantile_75"].append(pred_75[i])
+
 
         # Convert dictionary to DataFrame
         forecast_df = pd.DataFrame.from_dict(forecast)
 
         # Impose positivity
         forecast_df['PredictedDailyNewCases'] = forecast_df['PredictedDailyNewCases'].clip(lower=0)
-        forecast_df['PredictedDailySdev'] = forecast_df['PredictedDailySdev'].clip(lower=0)
+        forecast_df['PredictedDailyQuantile_25'] = forecast_df['PredictedDailyQuantile_25'].clip(lower=0)
+        forecast_df['PredictedDailyQuantile_75'] = forecast_df['PredictedDailyQuantile_75'].clip(lower=0)
         
         # Return only the requested predictions
         return forecast_df[(forecast_df.Date >= start_date) & (forecast_df.Date <= end_date)]
@@ -184,9 +188,10 @@ class KassandraPredictor:
             pred_new_cases = y_hat
         else :
             pred_new_cases = [0] * n_days
-        pred_sdev = [0] * n_days        
+        pred_25 = [0] * n_days        
+        pred_75 = [0] * n_days        
 
-        return pred_new_cases,pred_sdev
+        return pred_new_cases,pred_25,pred_75
 
     
 
@@ -198,9 +203,12 @@ class KassandraPredictor:
         mat = np.zeros((n_days,N_IPS+1))
         mat[:,0] = 1
         latest_ips = latest_ips/4.0
+        last_line = np.array([latest_ips[-1,:]])
+        for k in range(0,len(self.h)):
+            latest_ips = np.concatenate((latest_ips,last_line),axis=0)
         for k in range(0,N_IPS):
             dum = np.convolve(self.h,latest_ips[:,k])
-            mat[:,k+1] = dum[-n_days:]
+            mat[:,k+1] = dum[-n_days-len(self.h):-len(self.h)]
         return mat
 
     def predict_per_country_multi(self,GeoID,n_days,latest_ips):
@@ -228,16 +236,19 @@ class KassandraPredictor:
                 model_predictions[k,:] = y_hat
 
             pred_new_cases = [0] * n_days
-            pred_sdev = [0] * n_days
+            pred_25 = [0] * n_days
+            pred_75 = [0] * n_days
             for d in range(0,n_days):
                 preds = np.sort(model_predictions[:,d])
                 preds = preds[5:-5]
-                mymean = np.mean(preds)
-                mysdev = np.std(preds)
-                pred_new_cases[d] = mymean
-                pred_sdev[d] = mysdev
+                quants = np.percentile(preds,[25,50,75],interpolation='linear')
+
+                pred_new_cases[d] = quants[1]
+                pred_25[d] = quants[0]
+                pred_75[d] = quants[2]
         else :
             pred_new_cases = [0] * n_days
-            pred_sdev = [0] * n_days
+            pred_25 = [0] * n_days
+            pred_75 = [0] * n_days
 
-        return pred_new_cases,pred_sdev
+        return pred_new_cases,pred_25,pred_75
